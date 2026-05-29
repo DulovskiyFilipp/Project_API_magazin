@@ -80,7 +80,7 @@ async def delete_products(product_id: int, db: Session = Depends(get_db)):
     stmt = select(ProductModel).where(ProductModel.id == product_id, ProductModel.is_active == True)
     product = db.execute(stmt).scalars().first()
     if product is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Product is not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Product is not found!")
     
     db.execute(update(ProductModel).where(ProductModel.id == product_id).values(is_active = False))
     db.commit()
