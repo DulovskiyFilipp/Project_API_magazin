@@ -7,6 +7,9 @@ from app.models.m_products import Product as ProductModel
 from app.schemas.sh_categories import Category as CategorySchema, CategoryCreate
 from app.DB.db_depends import get_async_db
 
+from app.models.m_users import User as UserModel
+from app.auth import get_current_admin
+
 router = APIRouter(prefix='/categories', tags=['categories'])
 
 @router.get("/", response_model=list[CategorySchema], status_code=status.HTTP_200_OK)
@@ -18,14 +21,14 @@ async def get_all_categories(db: AsyncSession = Depends(get_async_db)):
 
 
 @router.post("/", response_model=CategorySchema, status_code=status.HTTP_201_CREATED)
-async def create_category(category: CategoryCreate, db: AsyncSession = Depends(get_async_db)):
+async def create_category(category: CategoryCreate, db: AsyncSession = Depends(get_async_db), current_user: UserModel = Depends(get_current_admin)):
     if category.parent_id is not None:
         stmt = select(CategoryModel).where(CategoryModel.id == category.parent_id, CategoryModel.is_active == True)
         result = await db.scalars(stmt)
         parent = result.first()
         if parent is None:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Parent category not found")
-        
+    
     db_category = CategoryModel(**category.model_dump())
     db.add(db_category)
     await db.commit()
@@ -34,7 +37,7 @@ async def create_category(category: CategoryCreate, db: AsyncSession = Depends(g
     
     
 @router.put("/{category_id}", response_model=CategorySchema, status_code=status.HTTP_200_OK)
-async def update_category(category_id: int, category: CategoryCreate, db: AsyncSession = Depends(get_async_db)):
+async def update_category(category_id: int, category: CategoryCreate, db: AsyncSession = Depends(get_async_db), current_user: UserModel = Depends(get_current_admin)):
     stmt = select(CategoryModel).where(CategoryModel.id == category_id, CategoryModel.is_active == True)
     result_category = await db.scalars(stmt)
     db_category = result_category.first()
@@ -61,7 +64,7 @@ async def update_category(category_id: int, category: CategoryCreate, db: AsyncS
 
 
 @router.delete("/{category_id}", status_code=status.HTTP_200_OK)
-async def delete_category(category_id: int, db: AsyncSession = Depends(get_async_db)):
+async def delete_category(category_id: int, db: AsyncSession = Depends(get_async_db), current_user: UserModel = Depends(get_current_admin)):
     stmt = select(CategoryModel).where(CategoryModel.id == category_id, CategoryModel.is_active == True)
     result = await db.scalars(stmt)
     category = result.first()
